@@ -103,7 +103,61 @@ class ForceListener(agxSDK.StepEventListener):
             df.to_csv('./results/{}.csv'.format(self.file), index=False)
 
 
-# class WinchController(agxSDK.StepEventListener):
+class WinchController(agxSDK.StepEventListener):
+    def __init__(self, object_owt, object_spar, kp, ki, kd):
+        super().__init__(agxSDK.StepEventListener.PRE_STEP)
+        self.object_owt = object_owt
+        self.object_spar = object_spar
+
+        self.kp = kp
+        self.ki = ki
+        self.kd = kd
+        self.prev_z_error = 0
+        self.Dterm = 0
+        self.Iterm = 0
+
+    # def set_limits(self, min: float, max: float, min_int: float, max_int: float) -> None:
+    #     """
+    #     Output limits.
+    #
+    #     Parameters
+    #     ----------
+    #     min : float
+    #         Minimum output.
+    #     max : float
+    #         Maximum output.
+    #     """
+    #     self.max = max
+    #     self.max_int = max_int
+    #     self.min = min
+    #     self.min_int = min_int
+    def pid(self):
+        owt_z = self.object_owt.getPosition().z()
+        spar_z = self.object_spar.getPosition().z()
+
+        delta_z = owt_z - spar_z
+        target_z = 0
+        delta_time = 0.05
+        z_error = delta_z-target_z
+
+        self.Pterm = self.kp * z_error
+        self.Iterm += (z_error + self.prev_z_error) * 0.5 * self.ki * delta_time
+        self.Dterm = (z_error-self.prev_z_error) / delta_time * self.kd
+
+        # if self.Iterm > self.max_int:
+        #     self.Iterm = self.max_int
+        # elif self.Iterm < self.min_int:
+        #     self.Iterm = self.min_int
+
+        self.prev_z_error = z_error
+
+        output = self.Pterm + self.Iterm + self.Dterm
+        # if output < self.min:
+        #     return self.min
+        # if output > self.max:
+        #     return self.max
+
+        return output
 
 # Exert force to control
 class TreDPController(agxSDK.StepEventListener):
@@ -199,12 +253,12 @@ class TreDPController(agxSDK.StepEventListener):
 
 
 # calculate
-def build_scene():
+def build_scene(timestep=0.05):
     # agx.setNumThreads(4)
     sim = agxPython.getContext().environment.getSimulation()
     app = agxPython.getContext().environment.getApplication()
 
-    sim.setTimeStep(0.05)
+    sim.setTimeStep(timestep)
     app.setAutoStepping(True)
 
     create_sky(app)
@@ -229,16 +283,7 @@ def build_scene():
     # wrapper.enable_debug_render(agx.Vec2(300, 300), 100)
     controller.setWaterWrapper(water_geometry, wrapper)
 
-    # res = 600
-    # size = agx.Vec2(500, 500)
-    # hf = agxCollide.HeightField(res, res, size.x(), size.y())
-    # geom = agxCollide.Geometry(hf)
-    # geom.setEnableCollisions(False)
-    # sim.add(geom)
-    # sim.add(WaveRenderer(hf))
-
     # water
-
     catamaran = add_catamaran()
     attachH = catamaran.hull
 
@@ -294,7 +339,7 @@ def build_scene():
     sparCon2 = agx.Vec3(3.59, -2.07, -15)
     cataCon2 = agx.Vec3(27.6, -2.07, 13)
 
-    # The first will keep a distance between the two bodies
+    """The first will keep a distance between the two bodies"""
     f011 = agx.Frame()
     f011.setLocalTranslate(deltaPosition[0] + fbn111.x(), deltaPosition[1] + fbn111.y(), deltaPosition[2] + fbn111.z())
     f111 = agx.Frame()
@@ -425,7 +470,7 @@ def build_scene():
     djsc2.setEnableComputeForces(True)
 
     dj11.getMotor1D().setEnable(True)
-    dj11.getMotor1D().setSpeed(-1)
+
     sim.add(dj11)
     sim.add(dj12)
     sim.add(dj13)
@@ -440,25 +485,6 @@ def build_scene():
 
     app.setEnableDebugRenderer(True)
     app.getSceneDecorator().setEnableShadows(True)
-
-    # from sfiExternalForce import SFIExternalForce
-    # sfi.add(SFIExternalForce(spar))
-    #
-    # sfi.init_camera(eye=agx.Vec3(0, 50, 100))
-    # plot_window = sfiPlot.PlotWindow()
-    # sim.add(plot_window)
-
-    # displacement
-    # plot_graph = plot_window.add_graph("wheel cog motion - heave", units='m', new_row=True)
-    # plot_graph.add_plot("Heave-cog", f=lambda t: b1.getCmPosition().z()-15, pen=(255, 0, 0))
-    # plot_graph = plot_window.add_graph("chassis cog motion - heave", units='m')
-    # plot_graph.add_plot("Heave-cog", f=lambda t: b2.getCmPosition().z()-20, pen=(255, 0, 0))
-
-    # force
-    # plot_graph = plot_window.add_graph("dj1 force - axial", units='N')
-    # plot_graph.add_plot("Axial-cog", f=lambda t: dj1.getCurrentForce(0), pen=(255, 0, 0))
-    # plot_graph = plot_window.add_graph("dj2 force - axial", units='N')
-    # plot_graph.add_plot("Axial-cog", f=lambda t: dj2.getCurrentForce(0), pen=(255, 0, 0))
 
     attachH_event = TimeStepEvent(attachH, 'attachH')
     sim.addEventListener(attachH_event)
@@ -484,6 +510,13 @@ def build_scene():
     attachH_DP = TreDPController(attachH)
     sim.addEventListener(attachH_DP)
 
+    owt_spar_z = WinchController(owt, spar, 0.1, 0.1, 0.1)
+    sim.addEventListener(owt_spar_z)
+    # instan0 = WinchController(owt, spar, 0.1, 0.1, 0.1)
+
+    w1_spd = owt_spar_z.pid()
+    dj11.getMotor1D().setSpeed(w1_spd)
+    print(w1_spd)
     init_camera(app, eye=agx.Vec3(0, 50, 100))
 
 
