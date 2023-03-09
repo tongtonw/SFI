@@ -104,10 +104,11 @@ class ForceListener(agxSDK.StepEventListener):
 
 
 class WinchController(agxSDK.StepEventListener):
-    def __init__(self, object_owt, object_spar, kp, ki, kd):
+    def __init__(self, object_owt, object_spar, dj11, kp, ki, kd):
         super().__init__(agxSDK.StepEventListener.PRE_STEP)
         self.object_owt = object_owt
         self.object_spar = object_spar
+        self.dj11 = dj11
 
         self.kp = kp
         self.ki = ki
@@ -131,7 +132,7 @@ class WinchController(agxSDK.StepEventListener):
     #     self.max_int = max_int
     #     self.min = min
     #     self.min_int = min_int
-    def pid(self):
+    def pre(self, time):
         owt_z = self.object_owt.getPosition().z()
         spar_z = self.object_spar.getPosition().z()
 
@@ -156,8 +157,10 @@ class WinchController(agxSDK.StepEventListener):
         #     return self.min
         # if output > self.max:
         #     return self.max
+        print(output)
+        self.dj11.getMotor1D().setSpeed(output)
 
-        return output
+
 
 # Exert force to control
 class TreDPController(agxSDK.StepEventListener):
@@ -510,13 +513,9 @@ def build_scene(timestep=0.05):
     attachH_DP = TreDPController(attachH)
     sim.addEventListener(attachH_DP)
 
-    owt_spar_z = WinchController(owt, spar, 0.1, 0.1, 0.1)
+    owt_spar_z = WinchController(owt, spar, dj11, 0.1, 0.1, 0.1)
     sim.addEventListener(owt_spar_z)
-    # instan0 = WinchController(owt, spar, 0.1, 0.1, 0.1)
 
-    w1_spd = owt_spar_z.pid()
-    dj11.getMotor1D().setSpeed(w1_spd)
-    print(w1_spd)
     init_camera(app, eye=agx.Vec3(0, 50, 100))
 
 
