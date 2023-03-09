@@ -3,6 +3,8 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+./back_install/.kts
+
 # C extensions
 *.so
 
@@ -112,3 +114,4 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+./.idea
