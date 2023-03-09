@@ -1,0 +1,8 @@
+sfi.py sfiActuators.py sfiCatamaran.py sficrane.py sfiCylinder.py sfiExternalForce.py sfiHull.py sfiLifter.py sfiMooring.py sfiPlatform.py sfiRoller.py sfiSpar.py sfiSparGripper.py sfiWaves.py sfiWindAndWater.py sfiWindmill.py
+
+vessel:
+VesselAGX.py sfiCatamaran.py sficrane.py sfiHull.py sfiPlatform.py sfiWindAndWater.py sfiWindmill.py sfiLifter.py sfiRoller.py sfiCylinder.py sfiSparGripper.py sfiActuators.py
+
+
+spar:
+SparAGX.py sfiSpar.py sfiMooring.py sfiWindAndWater.py

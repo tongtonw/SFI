@@ -1,0 +1,75 @@
+# Blender MTL File: 'None'
+# Material Count: 6
+
+newmtl Hull
+Ns 29.411765
+Ka 0.000000 0.000000 0.000000
+Kd 0.640000 0.640000 0.640000
+Ks 0.250000 0.250000 0.250000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd hulltemplate.tga
+map_Ka Catamaran_ao.tga
+
+newmtl Material__39
+Ns 29.411765
+Ka 0.000000 0.000000 0.000000
+Kd 0.640000 0.640000 0.640000
+Ks 0.250000 0.250000 0.250000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd hulltemplate.tga
+map_Ka Catamaran_ao.tga
+
+newmtl Material__40
+Ns 29.411765
+Ka 0.000000 0.000000 0.000000
+Kd 0.640000 0.640000 0.640000
+Ks 0.250000 0.250000 0.250000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd hulltemplate.tga
+map_Ka Catamaran_ao.tga
+
+newmtl Material__41
+Ns 29.411765
+Ka 0.000000 0.000000 0.000000
+Kd 0.640000 0.640000 0.640000
+Ks 0.250000 0.250000 0.250000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd hulltemplate.tga
+map_Ka Catamaran_ao.tga
+
+newmtl Material__42
+Ns 29.411765
+Ka 0.000000 0.000000 0.000000
+Kd 0.640000 0.640000 0.640000
+Ks 0.250000 0.250000 0.250000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd hulltemplate.tga
+map_Ka Catamaran_ao.tga
+
+newmtl metal
+Ns 17.647059
+Ka 0.588200 0.588200 0.588200
+Kd 0.588200 0.588200 0.588200
+Ks 0.900000 0.900000 0.900000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd metal_d.tga
+map_Bump Map__4_Normal Bump.jpg
+map_Ka metal_d.tga

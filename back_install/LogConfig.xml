@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<vico:LogConfig xmlns:vico="http://github.com/NTNU-IHB/Vico/schema/LogConfig" staticFileNames="true">
+
+    <vico:components>
+        <vico:component name="VesselSAGX">
+			<vico:variable name="Xc"/>
+			<vico:variable name="Yc"/>
+			<vico:variable name="Zc"/>
+			
+        </vico:component>
+        <vico:component name="TurbineAGX">
+            <vico:variable name="SBFXc1"/>
+			<vico:variable name="SBFYc1"/>
+			<vico:variable name="SBFZc1"/>
+			<vico:variable name="SBBXc2"/>
+            <vico:variable name="SBBYc2"/>
+            <vico:variable name="SBBZc2"/>
+			
+        </vico:component>
+    </vico:components>
+
+</vico:LogConfig>

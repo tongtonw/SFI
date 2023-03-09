@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<vico:ChartConfig xmlns:vico="http://github.com/NTNU-IHB/Vico/schema/ChartConfig">
+
+    <vico:chart>
+        <vico:timeseries title="Vessel-spar" label="Height[m]" decimationFactor="1" live="true">
+            <vico:series>
+				<vico:component name="VesselAGX">
+                    <vico:variable name="Xc"/>
+                </vico:component>
+				<vico:component name="VesselAGX">
+                    <vico:variable name="Yc"/>
+                </vico:component>
+				<vico:component name="VesselAGX">
+                    <vico:variable name="Zc"/>
+                </vico:component>
+            </vico:series>
+        </vico:timeseries>
+    </vico:chart>
+
+</vico:ChartConfig>
