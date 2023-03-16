@@ -95,6 +95,13 @@ class ForceListener(agxSDK.StepEventListener):
         self.torque = agx.Vec3()
         self.data = []
         self.file = filename
+    def post(self,t):
+        str = ""
+        self.constraints.getLastForce(0, self.force, self.torque)
+        name = self.constraints.getName()
+        cf = self.constraints.getCurrentForce(0)
+        str = str + "[{0}.f={1:4.2f}]".format(name, self.force.z())
+        # print(str, cf)
 
     def pre(self, time):
         self.data.append([time, self.force.x(), self.force.y(), self.force.z()])
@@ -104,11 +111,14 @@ class ForceListener(agxSDK.StepEventListener):
 
 
 class WinchController(agxSDK.StepEventListener):
-    def __init__(self, object_owt, object_spar, dj11, kp, ki, kd):
+    def __init__(self, object_owt, object_spar, dj11, dj12, dj13, dj14, kp, ki, kd):
         super().__init__(agxSDK.StepEventListener.PRE_STEP)
         self.object_owt = object_owt
         self.object_spar = object_spar
         self.dj11 = dj11
+        self.dj12 = dj12
+        self.dj13 = dj13
+        self.dj14 = dj14
 
         self.kp = kp
         self.ki = ki
@@ -159,8 +169,9 @@ class WinchController(agxSDK.StepEventListener):
         #     return self.max
         print(output)
         self.dj11.getMotor1D().setSpeed(output)
-
-
+        self.dj12.getMotor1D().setSpeed(output)
+        self.dj13.getMotor1D().setSpeed(output)
+        self.dj14.getMotor1D().setSpeed(output)
 
 # Exert force to control
 class TreDPController(agxSDK.StepEventListener):
@@ -473,6 +484,9 @@ def build_scene(timestep=0.05):
     djsc2.setEnableComputeForces(True)
 
     dj11.getMotor1D().setEnable(True)
+    dj12.getMotor1D().setEnable(True)
+    dj13.getMotor1D().setEnable(True)
+    dj14.getMotor1D().setEnable(True)
 
     sim.add(dj11)
     sim.add(dj12)
@@ -513,8 +527,8 @@ def build_scene(timestep=0.05):
     attachH_DP = TreDPController(attachH)
     sim.addEventListener(attachH_DP)
 
-    owt_spar_z = WinchController(owt, spar, dj11, 0.1, 0.1, 0.1)
-    sim.addEventListener(owt_spar_z)
+    # owt_spar_z = WinchController(owt, spar, dj11, dj12, dj13, dj14, 0.1, 0.1, 0.1)
+    # sim.addEventListener(owt_spar_z)
 
     init_camera(app, eye=agx.Vec3(0, 50, 100))
 
