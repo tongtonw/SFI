@@ -79,10 +79,14 @@ class TimeStepEvent(agxSDK.StepEventListener):
         self.file = filename
 
     def pre(self, time):
-        self.data.append([time, self.object.getPosition().x(), self.object.getPosition().y(), self.object.getPosition().z(), self.object.getLocalRotation().x(), self.object.getLocalRotation().y(), self.object.getLocalRotation().z()])
-        if round(time, 2) == 50.00:
-            df = pd.DataFrame(self.data, columns=['time', 'x', 'y', 'z', 'Rx', 'Ry','Rz'])
-            df.to_csv('./results/{}.csv'.format(self.file), index=False)
+        self.data.append(
+            [time, self.object.getPosition().x(), self.object.getPosition().y(), self.object.getPosition().z(),
+             self.object.getLocalRotation().x(), self.object.getLocalRotation().y(),
+             self.object.getLocalRotation().z()])
+        if round(time % 20) == 0.:
+            df = pd.DataFrame(self.data, columns=['time', 'x', 'y', 'z', 'Rx', 'Ry', 'Rz'])
+            df.to_csv('./results/{}_woc.csv'.format(self.file), index=False)
+            print('save data at {}s.'.format(time))
 
 
 # record force variable through time
@@ -95,7 +99,8 @@ class ForceListener(agxSDK.StepEventListener):
         self.torque = agx.Vec3()
         self.data = []
         self.file = filename
-    def post(self,t):
+
+    def post(self, t):
         str = ""
         self.constraints.getLastForce(0, self.force, self.torque)
         name = self.constraints.getName()
@@ -105,13 +110,13 @@ class ForceListener(agxSDK.StepEventListener):
 
     def pre(self, time):
         self.data.append([time, self.force.x(), self.force.y(), self.force.z()])
-        if round(time, 2) == 50.00:
+        if round(time % 20) == 0.00:
             df = pd.DataFrame(self.data, columns=['time', 'x', 'y', 'z'])
-            df.to_csv('./results/{}.csv'.format(self.file), index=False)
+            df.to_csv('./results/{}_woc.csv'.format(self.file), index=False)
 
 
 class WinchController(agxSDK.StepEventListener):
-    def __init__(self, object_owt, object_spar, dj11, dj12, dj13, dj14, kp, ki, kd):
+    def __init__(self, object_owt, object_spar, dj11, dj12, dj13, dj14, kp):
         super().__init__(agxSDK.StepEventListener.PRE_STEP)
         self.object_owt = object_owt
         self.object_spar = object_spar
@@ -121,8 +126,8 @@ class WinchController(agxSDK.StepEventListener):
         self.dj14 = dj14
 
         self.kp = kp
-        self.ki = ki
-        self.kd = kd
+        # self.ki = ki
+        # self.kd = kd
         self.prev_z_error = 0
         self.Dterm = 0
         self.Iterm = 0
@@ -143,35 +148,37 @@ class WinchController(agxSDK.StepEventListener):
     #     self.min = min
     #     self.min_int = min_int
     def pre(self, time):
-        owt_z = self.object_owt.getPosition().z()
-        spar_z = self.object_spar.getPosition().z()
+        if time > 200:
+            owt_z = self.object_owt.getPosition().z()
+            spar_z = self.object_spar.getPosition().z()
 
-        delta_z = owt_z - spar_z
-        target_z = 0
-        delta_time = 0.05
-        z_error = delta_z-target_z
+            delta_z = owt_z - spar_z
+            target_z = 0.1
+            delta_time = 0.05
+            z_error = delta_z - target_z
 
-        self.Pterm = self.kp * z_error
-        self.Iterm += (z_error + self.prev_z_error) * 0.5 * self.ki * delta_time
-        self.Dterm = (z_error-self.prev_z_error) / delta_time * self.kd
+            self.Pterm = self.kp * z_error
+            # self.Iterm += (z_error + self.prev_z_error) * 0.5 * self.ki * delta_time
+            # self.Dterm = (z_error-self.prev_z_error) / delta_time * self.kd
 
-        # if self.Iterm > self.max_int:
-        #     self.Iterm = self.max_int
-        # elif self.Iterm < self.min_int:
-        #     self.Iterm = self.min_int
+            # if self.Iterm > self.max_int:
+            #     self.Iterm = self.max_int
+            # elif self.Iterm < self.min_int:
+            #     self.Iterm = self.min_int
 
-        self.prev_z_error = z_error
+            self.prev_z_error = z_error
 
-        output = self.Pterm + self.Iterm + self.Dterm
-        # if output < self.min:
-        #     return self.min
-        # if output > self.max:
-        #     return self.max
-        print(output)
-        self.dj11.getMotor1D().setSpeed(output)
-        self.dj12.getMotor1D().setSpeed(output)
-        self.dj13.getMotor1D().setSpeed(output)
-        self.dj14.getMotor1D().setSpeed(output)
+            output = self.Pterm
+            # if output < self.min:
+            #     return self.min
+            # if output > self.max:
+            #     return self.max
+            print(output)
+            self.dj11.getMotor1D().setSpeed(output)
+            self.dj12.getMotor1D().setSpeed(output)
+            self.dj13.getMotor1D().setSpeed(output)
+            self.dj14.getMotor1D().setSpeed(output)
+
 
 # Exert force to control
 class TreDPController(agxSDK.StepEventListener):
@@ -208,6 +215,7 @@ class TreDPController(agxSDK.StepEventListener):
         self.KdHeading = 0
 
         # PID controller
+
     def pre(self, time):
         if round(time, 2) >= self.start_time:
             currentPositionSurge = self.object.getPosition().x()
@@ -527,7 +535,7 @@ def build_scene(timestep=0.05):
     attachH_DP = TreDPController(attachH)
     sim.addEventListener(attachH_DP)
 
-    # owt_spar_z = WinchController(owt, spar, dj11, dj12, dj13, dj14, 0.1, 0.1, 0.1)
+    # owt_spar_z = WinchController(owt, spar, dj11, dj12, dj13, dj14, 0.1)
     # sim.addEventListener(owt_spar_z)
 
     init_camera(app, eye=agx.Vec3(0, 50, 100))
