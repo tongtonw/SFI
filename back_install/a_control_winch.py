@@ -113,15 +113,12 @@ class ForceListener(agxSDK.StepEventListener):
         if round(time % 20) == 0.00:
             df = pd.DataFrame(self.data, columns=['time', 'x', 'y', 'z'])
             df.to_csv('./results/{}_woc.csv'.format(self.file), index=False)
+
 import numpy as np
 from scipy.spatial.transform import Rotation
 
-def get_new_position(upper_center_pos, bottom_center_trans, bottom_center_rot_ang):
-
+def get_new_position(upper_center_pos, bottom_center_trans, roll, pitch, yaw):
     # Define three rotation angles (in radians)
-    roll = np.pi / 4  # Rotation around x axis
-    pitch = np.pi / 3  # Rotation around y axis
-    yaw = np.pi / 6  # Rotation around z axis
 
     # Convert rotation angles to rotation quaternion
     r = Rotation.from_euler('xyz', [roll, pitch, yaw])
@@ -130,7 +127,7 @@ def get_new_position(upper_center_pos, bottom_center_trans, bottom_center_rot_an
     print("Rotation quaternion:", rot_quat)
 
     # Convert rotation quaternion to rotation matrix
-    r = Rotation.from_quat(bottom_center_rot)
+    r = Rotation.from_quat(rot_quat)
     rot_matrix = r.as_matrix()
 
     # Calculate new position due to translational DOFs
@@ -144,10 +141,59 @@ def get_new_position(upper_center_pos, bottom_center_trans, bottom_center_rot_an
 
     return new_pos
 
+class AlignController(agxSDK.StepEventListener):
+    def __init__(self, object_owt, dj21, dj22, dj23, dj24, kp):
+        self.Pterm_se = 0
+        self.Pterm_sw = 0
+        self.Pterm_ne = 0
+        self.Pterm_nw = 0
+        self.object_owt = object_owt
+        self.kp = kp
+        self.dj21 = dj21
+        self.dj22 = dj22
+        self.dj23 = dj23
+        self.dj24 = dj24
+
+
+    def pre(self,time):
+        if time > 200:
+            roll = self.object_owt.getLocalRotation().x()
+            pitch = self.object_owt.getLocalRotation().y()
+            yaw = self.object_owt.getLocalRotation().z()
+            bottom_center_trans = [self.object_owt.getPosition().x(),
+                                   self.object_owt.getPosition().y(),
+                                   self.object_owt.getPosition().z()]
+            upper_pos_nw = [-3.5194, 2.1992, 85]
+            upper_pos_ne = [3.5194, 2.1992, 85]
+            upper_pos_sw = [-3.5194, -2.1992, 85]
+            upper_pos_se = [3.5194, -2.1992, 85]
+
+            new_pos_nw = get_new_position(upper_pos_nw, bottom_center_trans, roll, pitch, yaw)
+            new_pos_ne = get_new_position(upper_pos_ne, bottom_center_trans, roll, pitch, yaw)
+            new_pos_sw = get_new_position(upper_pos_sw, bottom_center_trans, roll, pitch, yaw)
+            new_pos_se = get_new_position(upper_pos_se, bottom_center_trans, roll, pitch, yaw)
+
+            horizon_error_nw = (new_pos_nw[0] - upper_pos_nw[0])** 2 + (new_pos_nw[1] - upper_pos_nw[1]) ** 2
+            horizon_error_ne = (new_pos_ne[0] - upper_pos_ne[0])** 2 + (new_pos_ne[1] - upper_pos_ne[1]) ** 2
+            horizon_error_sw = (new_pos_sw[0] - upper_pos_sw[0]) ** 2 + (new_pos_sw[1] - upper_pos_sw[1]) ** 2
+            horizon_error_se = (new_pos_se[0] - upper_pos_se[0]) ** 2 + (new_pos_se[1] - upper_pos_se[1]) ** 2
+
+            self.Pterm_nw = self.kp * horizon_error_nw
+            self.Pterm_ne = self.kp * horizon_error_ne
+            self.Pterm_sw = self.kp * horizon_error_sw
+            self.Pterm_se = self.kp * horizon_error_se
+            # output = self.Pterm
+
+            print(horizon_error_nw, horizon_error_ne, horizon_error_sw, horizon_error_se)
+            self.dj21.getMotor1D().setSpeed(self.Pterm_ne)
+            self.dj22.getMotor1D().setSpeed(self.Pterm_se)
+            self.dj23.getMotor1D().setSpeed(self.Pterm_nw)
+            self.dj24.getMotor1D().setSpeed(self.Pterm_sw)
 
 class WinchController(agxSDK.StepEventListener):
     def __init__(self, object_owt, object_spar, dj11, dj12, dj13, dj14, kp):
         super().__init__(agxSDK.StepEventListener.PRE_STEP)
+        self.Pterm = 0
         self.object_owt = object_owt
         self.object_spar = object_spar
         self.dj11 = dj11
@@ -159,8 +205,8 @@ class WinchController(agxSDK.StepEventListener):
         # self.ki = ki
         # self.kd = kd
         self.prev_z_error = 0
-        self.Dterm = 0
-        self.Iterm = 0
+        # self.Dterm = 0
+        # self.Iterm = 0
 
     # def set_limits(self, min: float, max: float, min_int: float, max_int: float) -> None:
     #     """
@@ -526,6 +572,11 @@ def build_scene(timestep=0.05):
     dj13.getMotor1D().setEnable(True)
     dj14.getMotor1D().setEnable(True)
 
+    dj21.getMotor1D().setEnable(True)
+    dj22.getMotor1D().setEnable(True)
+    dj23.getMotor1D().setEnable(True)
+    dj24.getMotor1D().setEnable(True)
+
     sim.add(dj11)
     sim.add(dj12)
     sim.add(dj13)
@@ -565,8 +616,11 @@ def build_scene(timestep=0.05):
     attachH_DP = TreDPController(attachH)
     sim.addEventListener(attachH_DP)
 
-    # owt_spar_z = WinchController(owt, spar, dj11, dj12, dj13, dj14, 0.1)
-    # sim.addEventListener(owt_spar_z)
+    owt_spar_z = WinchController(owt, spar, dj11, dj12, dj13, dj14, 0.1)
+    sim.addEventListener(owt_spar_z)
+
+    alignment = AlignController(owt, dj21, dj22, dj23, dj24, 0.1)
+    sim.addEventListener(alignment)
 
     init_camera(app, eye=agx.Vec3(0, 50, 100))
 
