@@ -113,6 +113,36 @@ class ForceListener(agxSDK.StepEventListener):
         if round(time % 20) == 0.00:
             df = pd.DataFrame(self.data, columns=['time', 'x', 'y', 'z'])
             df.to_csv('./results/{}_woc.csv'.format(self.file), index=False)
+import numpy as np
+from scipy.spatial.transform import Rotation
+
+def get_new_position(upper_center_pos, bottom_center_trans, bottom_center_rot_ang):
+
+    # Define three rotation angles (in radians)
+    roll = np.pi / 4  # Rotation around x axis
+    pitch = np.pi / 3  # Rotation around y axis
+    yaw = np.pi / 6  # Rotation around z axis
+
+    # Convert rotation angles to rotation quaternion
+    r = Rotation.from_euler('xyz', [roll, pitch, yaw])
+    rot_quat = r.as_quat()
+
+    print("Rotation quaternion:", rot_quat)
+
+    # Convert rotation quaternion to rotation matrix
+    r = Rotation.from_quat(bottom_center_rot)
+    rot_matrix = r.as_matrix()
+
+    # Calculate new position due to translational DOFs
+    new_pos = upper_center_pos + bottom_center_trans
+
+    # Calculate new position due to rotational DOFs
+    rotation_axis, rotation_angle = r.as_rotvec()
+    radius = np.linalg.norm(upper_center_pos - bottom_center_trans)
+    circular_path = Rotation.from_rotvec(rotation_axis * radius * rotation_angle / np.pi).apply(upper_center_pos - bottom_center_trans)
+    new_pos += circular_path
+
+    return new_pos
 
 
 class WinchController(agxSDK.StepEventListener):
