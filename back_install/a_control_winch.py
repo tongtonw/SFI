@@ -153,7 +153,7 @@ class WinchController(agxSDK.StepEventListener):
             spar_z = self.object_spar.getPosition().z()
 
             delta_z = owt_z - spar_z
-            target_z = 0.1
+            target_z = 2
             delta_time = 0.05
             z_error = delta_z - target_z
 
