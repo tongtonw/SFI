@@ -85,7 +85,7 @@ class TimeStepEvent(agxSDK.StepEventListener):
              self.object.getLocalRotation().z()])
         if round(time % 20) == 0.:
             df = pd.DataFrame(self.data, columns=['time', 'x', 'y', 'z', 'Rx', 'Ry', 'Rz'])
-            df.to_csv('./results/{}_woc.csv'.format(self.file), index=False)
+            df.to_csv('./results/{}_fc.csv'.format(self.file), index=False)
             print('save data at {}s.'.format(time))
 
 
@@ -112,7 +112,7 @@ class ForceListener(agxSDK.StepEventListener):
         self.data.append([time, self.force.x(), self.force.y(), self.force.z()])
         if round(time % 20) == 0.00:
             df = pd.DataFrame(self.data, columns=['time', 'x', 'y', 'z'])
-            df.to_csv('./results/{}_woc.csv'.format(self.file), index=False)
+            df.to_csv('./results/{}_fc.csv'.format(self.file), index=False)
 
 import numpy as np
 from scipy.spatial.transform import Rotation
@@ -229,10 +229,12 @@ class WinchController(agxSDK.StepEventListener):
             spar_z = self.object_spar.getPosition().z()
 
             delta_z = owt_z - spar_z
-            target_z = 2
+            target_z = 1.7
             delta_time = 0.05
             z_error = delta_z - target_z
+            desired_z = spar_z + target_z
 
+            motor_spd = (owt_z-desired_z)*0.8
             self.Pterm = self.kp * z_error
             # self.Iterm += (z_error + self.prev_z_error) * 0.5 * self.ki * delta_time
             # self.Dterm = (z_error-self.prev_z_error) / delta_time * self.kd
@@ -242,9 +244,10 @@ class WinchController(agxSDK.StepEventListener):
             # elif self.Iterm < self.min_int:
             #     self.Iterm = self.min_int
 
-            self.prev_z_error = z_error
+            # self.prev_z_error = z_error
 
-            output = self.Pterm
+            # output = self.Pterm
+            output = motor_spd
             # if output < self.min:
             #     return self.min
             # if output > self.max:
@@ -616,8 +619,8 @@ def build_scene(timestep=0.05):
     attachH_DP = TreDPController(attachH)
     sim.addEventListener(attachH_DP)
 
-    # owt_spar_z = WinchController(owt, spar, dj11, dj12, dj13, dj14, 0.1)
-    # sim.addEventListener(owt_spar_z)
+    owt_spar_z = WinchController(owt, spar, dj11, dj12, dj13, dj14, 0.1)
+    sim.addEventListener(owt_spar_z)
 
     # alignment = AlignController(owt, dj21, dj22, dj23, dj24, 0.1)
     # sim.addEventListener(alignment)
