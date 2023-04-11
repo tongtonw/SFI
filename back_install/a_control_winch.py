@@ -616,8 +616,8 @@ def build_scene(timestep=0.05):
     attachH_DP = TreDPController(attachH)
     sim.addEventListener(attachH_DP)
 
-    owt_spar_z = WinchController(owt, spar, dj11, dj12, dj13, dj14, 0.1)
-    sim.addEventListener(owt_spar_z)
+    # owt_spar_z = WinchController(owt, spar, dj11, dj12, dj13, dj14, 0.1)
+    # sim.addEventListener(owt_spar_z)
 
     # alignment = AlignController(owt, dj21, dj22, dj23, dj24, 0.1)
     # sim.addEventListener(alignment)

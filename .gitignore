@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 
 back_install/.kts
+.DS_Store
 
 # C extensions
 *.so
