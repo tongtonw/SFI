@@ -290,7 +290,7 @@ class TreDPController(agxSDK.StepEventListener):
         self.prev_Heading_err = 0
 
         # PID parameters
-        self.KpSway = 10
+        self.KpSway = 100
         self.KiSway = 0
         self.KdSway = 0
 
@@ -367,7 +367,7 @@ class TreDPController(agxSDK.StepEventListener):
             Surge_force = PSurge + ISurge + DSurge
             Heading_moment = PHeading + IHeading + DHeading
 
-            self.object.addForceAtLocalPosition(agx.Vec3(Surge_force, Sway_force, 0), agx.Vec3(0, 0, 0))
+            self.object.addForceAtLocalPosition(agx.Vec3(Sway_force,Surge_force,  0), agx.Vec3(0, 0, 0))
 
             self.object.addLocalTorque(agx.Vec3(0, 0, Heading_moment))
 
