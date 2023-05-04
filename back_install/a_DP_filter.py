@@ -86,7 +86,7 @@ class TimeStepEvent(agxSDK.StepEventListener):
              self.object.getLocalRotation().z()])
         if round(time % 20) == 0.:
             df = pd.DataFrame(self.data, columns=['time', 'x', 'y', 'z', 'Rx', 'Ry', 'Rz'])
-            df.to_csv('./results/{}_H2_free.csv'.format(self.file), index=False)
+            df.to_csv('./results/{}_dp.csv'.format(self.file), index=False)
             print('save data at {}s.'.format(time))
 
 
@@ -113,7 +113,7 @@ class ForceListener(agxSDK.StepEventListener):
         self.data.append([time, self.force.x(), self.force.y(), self.force.z()])
         if round(time % 20) == 0.00:
             df = pd.DataFrame(self.data, columns=['time', 'x', 'y', 'z'])
-            df.to_csv('./results/{}_H2_free.csv'.format(self.file), index=False)
+            df.to_csv('./results/{}_dp.csv'.format(self.file), index=False)
 
 
 import numpy as np
