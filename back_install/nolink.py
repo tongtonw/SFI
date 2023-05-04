@@ -26,12 +26,6 @@ def add_floor(size, depth):
     return floor
 
 
-# def add_water(size, depth) -> SFIWindAndWater2:
-#     water_size = agx.Vec3(size, size, depth)
-#     water = SFIWindAndWater2(water_size)
-#     return water
-
-
 def add_spar(floor):
     spar = SFISpar()
     spar.setLocalPosition(0, 0, 20)
@@ -41,7 +35,7 @@ def add_spar(floor):
 
 def add_catamaran() -> SFICatamaran:
     catamaran = SFICatamaran()
-    catamaran.setLocalPosition(-9, 0, -8)
+    catamaran.setLocalPosition(-9, 0, -9)
     # catamaran.add_static_OWTs()
     # catamaran.add_cranes()
     return catamaran
@@ -83,10 +77,9 @@ class TimeStepEvent(agxSDK.StepEventListener):
             [time, self.object.getPosition().x(), self.object.getPosition().y(), self.object.getPosition().z(),
              self.object.getLocalRotation().x(), self.object.getLocalRotation().y(),
              self.object.getLocalRotation().z()])
-        if round(time % 20) == 0.:
+        if round(time, 2) == 20.00:
             df = pd.DataFrame(self.data, columns=['time', 'x', 'y', 'z', 'Rx', 'Ry', 'Rz'])
-            df.to_csv('./results/{}_H2_free.csv'.format(self.file), index=False)
-            print('save data at {}s.'.format(time))
+            df.to_csv('./results/{}_nolink.csv'.format(self.file), index=False)
 
 
 # record force variable through time
@@ -105,166 +98,14 @@ class ForceListener(agxSDK.StepEventListener):
         self.constraints.getLastForce(0, self.force, self.torque)
         name = self.constraints.getName()
         cf = self.constraints.getCurrentForce(0)
-        str = str + "[{0}.f={1:4.2f}]".format(name, self.force.z())
-        # print(str, cf)
+        str = str + "[{0}. f={1:4.2f}] ".format(name, self.force.z())
+        print(str, cf)
 
     def pre(self, time):
         self.data.append([time, self.force.x(), self.force.y(), self.force.z()])
-        if round(time % 20) == 0.00:
+        if round(time, 2) == 20.00:
             df = pd.DataFrame(self.data, columns=['time', 'x', 'y', 'z'])
-            df.to_csv('./results/{}_H2_free.csv'.format(self.file), index=False)
-
-
-import numpy as np
-from scipy.spatial.transform import Rotation
-
-
-def get_new_position(upper_center_pos, bottom_center_trans, roll, pitch, yaw):
-    # Define three rotation angles (in radians)
-
-    # Convert rotation angles to rotation quaternion
-    r = Rotation.from_euler('xyz', [roll, pitch, yaw])
-    rot_quat = r.as_quat()
-
-    print("Rotation quaternion:", rot_quat)
-
-    # Convert rotation quaternion to rotation matrix
-    r = Rotation.from_quat(rot_quat)
-    rot_matrix = r.as_matrix()
-
-    # Calculate new position due to translational DOFs
-    new_pos = upper_center_pos + bottom_center_trans
-
-    # Calculate new position due to rotational DOFs
-    rotation_axis, rotation_angle = r.as_rotvec()
-    radius = np.linalg.norm(upper_center_pos - bottom_center_trans)
-    circular_path = Rotation.from_rotvec(rotation_axis * radius * rotation_angle / np.pi).apply(
-        upper_center_pos - bottom_center_trans)
-    new_pos += circular_path
-
-    return new_pos
-
-
-class AlignController(agxSDK.StepEventListener):
-    def __init__(self, object_owt, dj21, dj22, dj23, dj24, kp):
-        self.Pterm_se = 0
-        self.Pterm_sw = 0
-        self.Pterm_ne = 0
-        self.Pterm_nw = 0
-        self.object_owt = object_owt
-        self.kp = kp
-        self.dj21 = dj21
-        self.dj22 = dj22
-        self.dj23 = dj23
-        self.dj24 = dj24
-
-    def pre(self, time):
-        if time > 200:
-            roll = self.object_owt.getLocalRotation().x()
-            pitch = self.object_owt.getLocalRotation().y()
-            yaw = self.object_owt.getLocalRotation().z()
-            bottom_center_trans = [self.object_owt.getPosition().x(),
-                                   self.object_owt.getPosition().y(),
-                                   self.object_owt.getPosition().z()]
-            upper_pos_nw = [-3.5194, 2.1992, 85]
-            upper_pos_ne = [3.5194, 2.1992, 85]
-            upper_pos_sw = [-3.5194, -2.1992, 85]
-            upper_pos_se = [3.5194, -2.1992, 85]
-
-            new_pos_nw = get_new_position(upper_pos_nw, bottom_center_trans, roll, pitch, yaw)
-            new_pos_ne = get_new_position(upper_pos_ne, bottom_center_trans, roll, pitch, yaw)
-            new_pos_sw = get_new_position(upper_pos_sw, bottom_center_trans, roll, pitch, yaw)
-            new_pos_se = get_new_position(upper_pos_se, bottom_center_trans, roll, pitch, yaw)
-
-            horizon_error_nw = (new_pos_nw[0] - upper_pos_nw[0]) ** 2 + (new_pos_nw[1] - upper_pos_nw[1]) ** 2
-            horizon_error_ne = (new_pos_ne[0] - upper_pos_ne[0]) ** 2 + (new_pos_ne[1] - upper_pos_ne[1]) ** 2
-            horizon_error_sw = (new_pos_sw[0] - upper_pos_sw[0]) ** 2 + (new_pos_sw[1] - upper_pos_sw[1]) ** 2
-            horizon_error_se = (new_pos_se[0] - upper_pos_se[0]) ** 2 + (new_pos_se[1] - upper_pos_se[1]) ** 2
-
-            self.Pterm_nw = self.kp * horizon_error_nw
-            self.Pterm_ne = self.kp * horizon_error_ne
-            self.Pterm_sw = self.kp * horizon_error_sw
-            self.Pterm_se = self.kp * horizon_error_se
-            # output = self.Pterm
-
-            print(horizon_error_nw, horizon_error_ne, horizon_error_sw, horizon_error_se)
-            self.dj21.getMotor1D().setSpeed(self.Pterm_ne)
-            self.dj22.getMotor1D().setSpeed(self.Pterm_se)
-            self.dj23.getMotor1D().setSpeed(self.Pterm_nw)
-            self.dj24.getMotor1D().setSpeed(self.Pterm_sw)
-
-
-class WinchController(agxSDK.StepEventListener):
-    """keep constant setpoint, and minimize oscillate amplitude"""
-
-    def __init__(self, object_owt, object_spar, dj11, dj12, dj13, dj14, kp):
-        super().__init__(agxSDK.StepEventListener.PRE_STEP)
-        self.Pterm = 0
-        self.object_owt = object_owt
-        self.object_spar = object_spar
-        self.dj11 = dj11
-        self.dj12 = dj12
-        self.dj13 = dj13
-        self.dj14 = dj14
-
-        self.kp = kp
-        # self.ki = ki
-        # self.kd = kd
-        self.prev_z = 25
-        self.Dterm = 0
-        # self.Iterm = 0
-
-    # def set_limits(self, min: float, max: float, min_int: float, max_int: float) -> None:
-    #     """
-    #     Output limits.
-    #
-    #     Parameters
-    #     ----------
-    #     min : float
-    #         Minimum output.
-    #     max : float
-    #         Maximum output.
-    #     """
-    #     self.max = max
-    #     self.max_int = max_int
-    #     self.min = min
-    #     self.min_int = min_int
-    def pre(self, time):
-        if time > 100:
-            owt_z = self.object_owt.getPosition().z()
-            spar_z = self.object_spar.getPosition().z()
-
-            delta_z = owt_z - spar_z
-            target_z = 2.0
-            delta_time = 0.05
-            z_error = delta_z - target_z
-            desired_z = spar_z + target_z
-
-            # motor_spd = (owt_z - desired_z) * 0.8 + (owt_z - self.prev_z) / delta_time * 0.5
-            motor_spd = (owt_z - self.prev_z) / delta_time * 0.7
-
-            self.Pterm = self.kp * z_error
-            # self.Iterm += (z_error + self.prev_z_error) * 0.5 * self.ki * delta_time
-            # self.Dterm = (owt_z - self.prev_z) / delta_time * self.kd
-
-            # if self.Iterm > self.max_int:
-            #     self.Iterm = self.max_int
-            # elif self.Iterm < self.min_int:
-            #     self.Iterm = self.min_int
-            self.prev_z = owt_z
-            # self.prev_z_error = z_error
-
-            # output = self.Pterm
-            output = motor_spd
-            # if output < self.min:
-            #     return self.min
-            # if output > self.max:
-            #     return self.max
-            print(output)
-            self.dj11.getMotor1D().setSpeed(output)
-            self.dj12.getMotor1D().setSpeed(output)
-            self.dj13.getMotor1D().setSpeed(output)
-            self.dj14.getMotor1D().setSpeed(output)
+            df.to_csv('./results/{}_nolink.csv'.format(self.file), index=False)
 
 
 # Exert force to control
@@ -361,13 +202,100 @@ class TreDPController(agxSDK.StepEventListener):
             self.prev_Heading_err = Heading_err
 
 
+class SpeedController(agxSDK.StepEventListener):
+    def __init__(self, object, speed):
+        super().__init__()
+
+        # Assign some variables that the listener needs
+        self.speed = speed
+        self.object = object
+
+        # Enable the motor and set the initial speed
+        object.getMotor1D().setEnable(True)
+        object.getMotor1D().setSpeed(0)
+        self.force = agx.Vec3()
+        self.torque = agx.Vec3()
+
+    # This method will be called every timestep
+    def pre(self, time):
+        if time >= 1:
+            self.object.getLock1D().setEnable(False)
+            self.object.getMotor1D().setSpeed(self.speed)
+        self.object.getLastForce(0, self.force, self.torque)
+        # print(self.object.getMotor1D().getSpeed(), self.force, self.torque)
+
+
+class WinchController(agxSDK.StepEventListener):
+    # control object: winch payout rate
+    # target: cubic velocity Z is the same with another cubic or the velocity difference is 0
+
+    def __init__(self, object1, object2, speed1, speed2, speed3, speed4):
+        super().__init__(agxSDK.StepEventListener.PRE_STEP)
+
+        # Controller specific members
+        self.object1 = object1
+        self.object2 = object2
+        self.speed1 = speed1
+        self.speed2 = speed2
+        self.speed3 = speed3
+        self.speed4 = speed4
+        self.Target_VZD = 0
+        # VZD = VelocityZDifference
+        self.start_time = 2.00
+        self.last_time_stamp = self.start_time
+        self.prev_VZD_err = 0
+        self.VZD_integral = 0
+
+        # PID parameters
+        self.Kp_VZD = 0.2
+        self.Ki_VZD = 0
+        self.Kd_VZD = 0
+
+        # PID controller
+
+    def pre(self, time):
+        if round(time, 2) >= self.start_time:
+            current_VZD = self.object1.getVelocity().z() - self.object2.getVelocity().z()
+
+            VZD_err = self.Target_VZD - current_VZD
+
+            if round(time, 2) == self.start_time:
+                self.prev_VZD_err = VZD_err
+            # Get delta time (dt) since last loop
+            dt = time - self.last_time_stamp
+
+            # For the proportional part
+            P_VZD = VZD_err * self.Kp_VZD
+
+            # For the integral part
+            # self.Sway_integral += Sway_err * dt
+            self.VZD_integral += (VZD_err + self.prev_VZD_err) / 2.0 * dt
+            I_VZD = self.VZD_integral * self.Ki_VZD
+
+            # For the derivative part
+            D_VZD_err = (VZD_err - self.prev_VZD_err) / dt
+            D_VZD = D_VZD_err * self.Kd_VZD
+
+            # Update PayoutRate
+            Winch_PayoutRate = P_VZD + I_VZD + D_VZD
+
+            self.speed1.speed = Winch_PayoutRate
+            self.speed2.speed = Winch_PayoutRate
+            self.speed3.speed = Winch_PayoutRate
+            self.speed4.speed = Winch_PayoutRate
+
+            self.last_time_stamp = time
+            # print(Winch_PayoutRate, self.prev_VZD_err, VZD_err, self.object1.getVelocity().z(), self.object2.getVelocity().z())
+            self.prev_VZD_err = VZD_err
+
+
 # calculate
-def build_scene(timestep=0.05):
+def build_scene():
     # agx.setNumThreads(4)
     sim = agxPython.getContext().environment.getSimulation()
     app = agxPython.getContext().environment.getApplication()
 
-    sim.setTimeStep(timestep)
+    sim.setTimeStep(0.01)
     app.setAutoStepping(True)
 
     create_sky(app)
@@ -388,11 +316,10 @@ def build_scene(timestep=0.05):
 
     controller = agxModel.WindAndWaterController()
     controller.addWater(water_geometry)
-    wrapper = WaterWrapper(size=300, amplitude=1, period=8, heading=0)
+    wrapper = WaterWrapper(size=300, amplitude=0, period=8, heading=0)
     # wrapper.enable_debug_render(agx.Vec2(300, 300), 100)
     controller.setWaterWrapper(water_geometry, wrapper)
 
-    # water
     catamaran = add_catamaran()
     attachH = catamaran.hull
 
@@ -448,7 +375,7 @@ def build_scene(timestep=0.05):
     sparCon2 = agx.Vec3(3.59, -2.07, -15)
     cataCon2 = agx.Vec3(27.6, -2.07, 13)
 
-    """The first will keep a distance between the two bodies"""
+    # The first will keep a distance between the two bodies
     f011 = agx.Frame()
     f011.setLocalTranslate(deltaPosition[0] + fbn111.x(), deltaPosition[1] + fbn111.y(), deltaPosition[2] + fbn111.z())
     f111 = agx.Frame()
@@ -522,24 +449,36 @@ def build_scene(timestep=0.05):
     dj11.setCompliance(Compliance_11)
     dj11.setDamping(spookDamping_11)
     dj11.setEnableComputeForces(True)
+    dj11.getMotor1D().setLockedAtZeroSpeed(True)
+    speedControllerDj11 = SpeedController(dj11, 1)
+    sim.addEventListener(speedControllerDj11)
 
     Compliance_12 = 3.96E-8
     spookDamping_12 = 1.00E-2
     dj12.setCompliance(Compliance_12)
     dj12.setDamping(spookDamping_12)
     dj12.setEnableComputeForces(True)
+    dj12.getMotor1D().setLockedAtZeroSpeed(True)
+    speedControllerDj12 = SpeedController(dj12, 1)
+    sim.addEventListener(speedControllerDj12)
 
     Compliance_13 = 3.96E-8
     spookDamping_13 = 1.00E-2
     dj13.setCompliance(Compliance_13)
     dj13.setDamping(spookDamping_13)
     dj13.setEnableComputeForces(True)
+    dj13.getMotor1D().setLockedAtZeroSpeed(True)
+    speedControllerDj13 = SpeedController(dj13, 1)
+    sim.addEventListener(speedControllerDj13)
 
     Compliance_14 = 3.96E-8
     spookDamping_14 = 1.00E-2
     dj14.setCompliance(Compliance_14)
     dj14.setDamping(spookDamping_14)
     dj14.setEnableComputeForces(True)
+    dj14.getMotor1D().setLockedAtZeroSpeed(True)
+    speedControllerDj14 = SpeedController(dj14, 1)
+    sim.addEventListener(speedControllerDj14)
 
     Compliance_21 = 6.86E-9
     spookDamping_21 = 1.00E-2
@@ -571,22 +510,18 @@ def build_scene(timestep=0.05):
     djsc1.setCompliance(Compliance_sc1)
     djsc1.setDamping(spookDamping_sc1)
     djsc1.setEnableComputeForces(True)
+    djsc1.getMotor1D().setLockedAtZeroSpeed(True)
+    speedControllerDjsc1 = SpeedController(djsc1, 0)
+    sim.addEventListener(speedControllerDjsc1)
 
     Compliance_sc2 = 1.28E-8
     spookDamping_sc2 = 0.015
     djsc2.setCompliance(Compliance_sc2)
     djsc2.setDamping(spookDamping_sc2)
     djsc2.setEnableComputeForces(True)
-
-    dj11.getMotor1D().setEnable(True)
-    dj12.getMotor1D().setEnable(True)
-    dj13.getMotor1D().setEnable(True)
-    dj14.getMotor1D().setEnable(True)
-
-    dj21.getMotor1D().setEnable(True)
-    dj22.getMotor1D().setEnable(True)
-    dj23.getMotor1D().setEnable(True)
-    dj24.getMotor1D().setEnable(True)
+    djsc2.getMotor1D().setLockedAtZeroSpeed(True)
+    speedControllerDjsc2 = SpeedController(djsc2, 0)
+    sim.addEventListener(speedControllerDjsc2)
 
     sim.add(dj11)
     sim.add(dj12)
@@ -597,8 +532,8 @@ def build_scene(timestep=0.05):
     sim.add(dj23)
     sim.add(dj24)
 
-    sim.add(djsc1)
-    sim.add(djsc2)
+    # sim.add(djsc1)
+    # sim.add(djsc2)
 
     app.setEnableDebugRenderer(True)
     app.getSceneDecorator().setEnableShadows(True)
@@ -612,12 +547,12 @@ def build_scene(timestep=0.05):
     owt_event = TimeStepEvent(owt, 'owt')
     sim.addEventListener(owt_event)
 
-    djsc1_event = ForceListener(djsc1, 'djsc11')
-    sim.addEventListener(djsc1_event)
-
-    djsc2_event = ForceListener(djsc2, 'djsc22')
-    sim.addEventListener(djsc2_event)
-
+    # djsc1_event = ForceListener(djsc1, 'djsc11')
+    # sim.addEventListener(djsc1_event)
+    #
+    # djsc2_event = ForceListener(djsc2, 'djsc22')
+    # sim.addEventListener(djsc2_event)
+    #
     dj11_event = ForceListener(dj11, 'dj111')
     sim.addEventListener(dj11_event)
 
@@ -627,11 +562,9 @@ def build_scene(timestep=0.05):
     attachH_DP = TreDPController(attachH)
     sim.addEventListener(attachH_DP)
 
-    # owt_spar_z = WinchController(owt, spar, dj11, dj12, dj13, dj14, 0.1)
-    # sim.addEventListener(owt_spar_z)
-
-    # alignment = AlignController(owt, dj21, dj22, dj23, dj24, 0.1)
-    # sim.addEventListener(alignment)
+    # WinchControl_event = WinchController(spar, owt, speedControllerDj11, speedControllerDj12, speedControllerDj13,
+    #                                      speedControllerDj13Dj14)
+    # sim.addEventListener(WinchControl_event)
 
     init_camera(app, eye=agx.Vec3(0, 50, 100))
 
@@ -659,3 +592,4 @@ def main(args):
 if agxPython.getContext() is None:
     init = agx.AutoInit()
     main(sys.argv)
+

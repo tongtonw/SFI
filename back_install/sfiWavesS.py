@@ -11,7 +11,7 @@ import mathUtils
 
 class WaterWrapper(agxModel.WaterWrapper):
 
-    def __init__(self, size, amplitude=1, period=2, heading=0):
+    def __init__(self, size, amplitude=1, period=8, heading=0):
         super().__init__()
 
         self.heading = math.radians(heading)
