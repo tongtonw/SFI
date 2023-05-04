@@ -80,6 +80,7 @@ class TimeStepEvent(agxSDK.StepEventListener):
         if round(time % 20) == 0.:
             df = pd.DataFrame(self.data, columns=['time', 'x', 'y', 'z', 'Rx', 'Ry', 'Rz'])
             df.to_csv('./results/{}_nolink.csv'.format(self.file), index=False)
+            print(time)
 
 
 # record force variable through time
@@ -295,7 +296,7 @@ def build_scene():
     sim = agxPython.getContext().environment.getSimulation()
     app = agxPython.getContext().environment.getApplication()
 
-    sim.setTimeStep(0.01)
+    sim.setTimeStep(0.05)
     app.setAutoStepping(True)
 
     create_sky(app)
