@@ -49,10 +49,11 @@ ax[1].set_ylim([0, 1])
 
 # create notch filter
 ######## try to detect frequency we want to filter ##########
-# f0 = np.abs(Y[np.argmax(np.abs(Y[1:]),axis=0)]) # locate frequency with highest energy -> we want to filter it out
+# f0 = np.abs(Y[np.argmax(np.abs(Y[1:]), axis=0)])  # locate frequency with highest energy -> we want to filter it out
+# print(f0)
 ######## manually set frequency we want to filter ##########
 f0 = 0.11  # frequency we want to filter out [Hz]
-Q = 1  # Quality factor
+Q = 0.4  # Quality factor
 
 # Design notch filter
 b, a = signal.iirnotch(f0, Q, Fs)
@@ -81,7 +82,7 @@ livefilter = LiveLFilter(b, a)
 x_filt = []
 x_raw = []
 for i in range(0, n):
-    print(str(i))
+    # print(str(i))
     t = data['time'][i]
     x = data[variable][i]
     x_filt.append(livefilter(x))

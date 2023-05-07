@@ -312,7 +312,7 @@ class TreDPController(agxSDK.StepEventListener):
 
             # notch filter
             f0 = 0.11  # frequency we want to filter out [Hz]
-            Q = 1  # Quality factor
+            Q = 0.4  # Quality factor
             Fs = 20
             # Design notch filter
             b, a = signal.iirnotch(f0, Q, Fs)
@@ -322,11 +322,9 @@ class TreDPController(agxSDK.StepEventListener):
 
             # apply filter to live data
             livefilter = LiveLFilter(b, a)
-            # x_filt = []
-            # x_raw = []
-            currentPositionSurge = livefilter(currentPositionSurge)
+            xPos_filt = livefilter(currentPositionSurge)
 
-            Surge_err = self.TargetSurge - currentPositionSurge
+            Surge_err = self.TargetSurge - xPos_filt
             Sway_err = self.TargetSway - currentPositionSway
             Heading_err = self.TargetHeading - currentPositionHeading
 
@@ -367,7 +365,7 @@ class TreDPController(agxSDK.StepEventListener):
             Surge_force = PSurge + ISurge + DSurge
             Heading_moment = PHeading + IHeading + DHeading
 
-            self.object.addForceAtLocalPosition(agx.Vec3(Sway_force,Surge_force,  0), agx.Vec3(0, 0, 0))
+            self.object.addForceAtLocalPosition(agx.Vec3(Sway_force, Surge_force,  0), agx.Vec3(0, 0, 0))
 
             self.object.addLocalTorque(agx.Vec3(0, 0, Heading_moment))
 
