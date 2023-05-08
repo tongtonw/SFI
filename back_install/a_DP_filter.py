@@ -294,7 +294,7 @@ class TreDPController(agxSDK.StepEventListener):
         self.KiSway = 0
         self.KdSway = 0
 
-        self.KpSurge = 100
+        self.KpSurge = 10
         self.KiSurge = 0
         self.KdSurge = 0
 
@@ -303,6 +303,17 @@ class TreDPController(agxSDK.StepEventListener):
         self.KdHeading = 0
 
         # PID controller
+        f0 = 0.11  # frequency we want to filter out [Hz]
+        Q = 0.4  # Quality factor
+        Fs = 20
+        # Design notch filter
+        b, a = signal.iirnotch(f0, Q, Fs)
+
+        # Frequency response
+        # freq, h = signal.freqz(b, a, fs=Fs)
+
+        # apply filter to live data
+        self.livefilter = LiveLFilter(b, a)
 
     def pre(self, time):
         if round(time, 2) >= self.start_time:
@@ -311,18 +322,8 @@ class TreDPController(agxSDK.StepEventListener):
             currentPositionHeading = self.object.getLocalRotation().z()
 
             # notch filter
-            f0 = 0.11  # frequency we want to filter out [Hz]
-            Q = 0.4  # Quality factor
-            Fs = 20
-            # Design notch filter
-            b, a = signal.iirnotch(f0, Q, Fs)
 
-            # Frequency response
-            # freq, h = signal.freqz(b, a, fs=Fs)
-
-            # apply filter to live data
-            livefilter = LiveLFilter(b, a)
-            xPos_filt = livefilter(currentPositionSurge)
+            xPos_filt = self.livefilter(currentPositionSurge)
 
             Surge_err = self.TargetSurge - xPos_filt
             Sway_err = self.TargetSway - currentPositionSway
@@ -365,7 +366,7 @@ class TreDPController(agxSDK.StepEventListener):
             Surge_force = PSurge + ISurge + DSurge
             Heading_moment = PHeading + IHeading + DHeading
 
-            self.object.addForceAtLocalPosition(agx.Vec3(Sway_force, Surge_force,  0), agx.Vec3(0, 0, 0))
+            self.object.addForceAtLocalPosition(agx.Vec3(Sway_force,Surge_force,   0), agx.Vec3(0, 0, 0))
 
             self.object.addLocalTorque(agx.Vec3(0, 0, Heading_moment))
 
