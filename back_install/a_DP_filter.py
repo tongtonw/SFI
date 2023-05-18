@@ -294,7 +294,7 @@ class TreDPController(agxSDK.StepEventListener):
         self.KiSway = 0
         self.KdSway = 0
 
-        self.KpSurge = 10
+        self.KpSurge = 100
         self.KiSurge = 0
         self.KdSurge = 0
 
@@ -325,7 +325,7 @@ class TreDPController(agxSDK.StepEventListener):
 
             xPos_filt = self.livefilter(currentPositionSurge)
 
-            Surge_err = self.TargetSurge - xPos_filt
+            Surge_err = self.TargetSurge - currentPositionSurge
             Sway_err = self.TargetSway - currentPositionSway
             Heading_err = self.TargetHeading - currentPositionHeading
 
@@ -365,6 +365,12 @@ class TreDPController(agxSDK.StepEventListener):
             Sway_force = PSway + ISway + DSway
             Surge_force = PSurge + ISurge + DSurge
             Heading_moment = PHeading + IHeading + DHeading
+            thrust = [Surge_force, Sway_force, Heading_moment]
+            from csv import writer
+            with open('DPthrust.txt', 'a') as f_object:
+                writer_object = writer(f_object)
+                writer_object.writerow(thrust)
+                f_object.close()
 
             self.object.addForceAtLocalPosition(agx.Vec3(Sway_force,Surge_force,   0), agx.Vec3(0, 0, 0))
 

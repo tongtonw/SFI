@@ -1,7 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import os
-
+import numpy as np
 path = './results'
 file = os.listdir(path)
 print(file)
@@ -17,7 +17,6 @@ spar_fc = pd.read_csv(path + '/' + 'spar_fc.csv')
 owt_amp = pd.read_csv(path + '/' + 'owt_amp.csv')
 spar_amp = pd.read_csv(path + '/' + 'spar_amp.csv')
 
-
 hull_free = pd.read_csv(path + '/' + 'attachH_H2_free.csv')
 hull_H8 = pd.read_csv(path + '/' + 'attachH_H8_free.csv')
 owt_H8 = pd.read_csv(path + '/' + 'owt_H8_free.csv')
@@ -25,49 +24,99 @@ spar_H8 = pd.read_csv(path + '/' + 'spar_H8_free.csv')
 
 hull_nolink = pd.read_csv(path + '/' + 'attachH_nolink.csv')
 spar_nolink = pd.read_csv(path + '/' + 'spar_nolink.csv')
-owt_nolink = pd.read_csv(path + '/'+'owt_nolink.csv')
-
+owt_nolink = pd.read_csv(path + '/' + 'owt_nolink.csv')
+#
 """ with or without filter """
-hull_filt = pd.read_csv(path + '/' + 'attachH_dp.csv')
-fig, axs = plt.subplots(3, 1)
-axs[0].plot(hull_filt['time'], hull_filt['x'], label='filtered')
-axs[0].plot(hull_H8['time'], hull_H8['x'], label='raw')
+# hull_filt = pd.read_csv(path + '/' + 'attachH_dp.csv')
+# fig, axs = plt.subplots(3, 1)
+# axs[0].plot(hull_filt['time'], hull_filt['x'], label='filtered')
+# axs[0].plot(hull_H8['time'], hull_H8['x'], label='raw')
+# axs[0].set_title('x')
+# axs[0].legend()
+# axs[1].plot(hull_filt['time'], hull_filt['y'], label='filtered')
+# axs[1].plot(hull_H8['time'], hull_H8['y'], label='raw')
+# axs[1].set_title('y')
+# axs[1].legend()
+# axs[2].plot(hull_filt['time'], hull_filt['Rz'], label='filtered')
+# axs[2].plot(hull_H8['time'], hull_H8['Rz'], label='raw')
+# axs[2].set_title('heading')
+# axs[2].legend()
+# plt.xlabel('time [s]')
+# plt.tight_layout()
+# plt.show()
+
+""" plot wire forces between hull and spar"""
+djsc11_H8 = pd.read_csv(path + '/' + 'djsc11_H8_free.csv')
+djsc22_H8 = pd.read_csv(path + '/' + 'djsc22_H8_free.csv')
+
+Ft = np.sqrt((djsc11_H8['x'].values)**2+(djsc11_H8['y'].values)**2+(djsc11_H8['z'].values)**2)
+plt.figure()
+plt.plot(djsc11_H8['time'],Ft)
+plt.xlabel('time[s]')
+plt.ylabel('tension')
+plt.show()
+# figs, axs = plt.subplots(3, 1)
+# axs[0].plot(djsc11_H8['time'], djsc11_H8['x'], label='djsc11')
+# axs[0].plot(djsc22_H8['time'], djsc22_H8['x'], label='djsc22')
+# axs[0].legend()
+# axs[0].set_title('Fx')
+# # axs[1].plot(dj111_free['time'], dj111_free['y'], label='T=2')
+# axs[1].plot(djsc11_H8['time'], djsc11_H8['y'], label='djsc11')
+# axs[1].plot(djsc22_H8['time'], djsc22_H8['y'], label='djsc22')
+
+# axs[1].legend()
+# axs[1].set_title('Fy')
+# # axs[2].plot(dj111_free['time'], dj111_free['z'], label='T=2')
+# axs[2].plot(djsc11_H8['time'], djsc11_H8['z'], label='djsc11')
+# axs[2].plot(djsc22_H8['time'], djsc22_H8['z'], label='djsc22')
+# axs[2].legend()
+# axs[2].set_title('Fz')
+# plt.tight_layout()
+# plt.show()
+
+"""plot ship motion without DP controller"""
+hull_nodp = pd.read_csv(path + '/' + 'attachH_no_dp.csv')
+spar_nodp= pd.read_csv(path + '/' + 'spar_no_dp.csv')
+owt_nodp = pd.read_csv(path + '/' + 'owt_no_dp.csv')
+
+figs, axs = plt.subplots(3, 1)
+axs[0].plot(hull_nodp['time'], hull_nodp['x'], label='w.o.t DP')
+axs[0].plot(hull_H8['time'], hull_H8['x'], label='DP')
 axs[0].set_title('x')
 axs[0].legend()
-axs[1].plot(hull_filt['time'], hull_filt['y'], label='filtered')
-axs[1].plot(hull_H8['time'], hull_H8['y'], label='raw')
+axs[1].plot(hull_nodp['time'], hull_nodp['y'], label='w.o.t DP')
+axs[1].plot(hull_H8['time'], hull_H8['y'], label='DP')
 axs[1].set_title('y')
 axs[1].legend()
-axs[2].plot(hull_filt['time'], hull_filt['Rz'], label='filtered')
-axs[2].plot(hull_H8['time'], hull_H8['Rz'], label='raw')
+axs[2].plot(hull_nodp['time'], hull_nodp['Rz'], label='w.o.t DP')
+axs[2].plot(hull_H8['time'], hull_H8['Rz'], label='DP')
 axs[2].set_title('heading')
 axs[2].legend()
 plt.xlabel('time [s]')
 plt.tight_layout()
 plt.show()
+"""plot thrust during DP"""
+thrust = pd.read_csv('DPthrust.txt').values
+fi_, axs = plt.subplots(3, 1)
+# time = range(0,int(thrust.shape[0])*0.05,0.05)
 
-""" plot wire forces between hull and spar"""
-djsc11_H8 = pd.read_csv(path+'/'+'djsc11_H8_free.csv')
-djsc22_H8 = pd.read_csv(path+'/'+'djsc22_H8_free.csv')
-
-figs, axs = plt.subplots(3, 1)
-axs[0].plot(djsc11_H8['time'], djsc11_H8['x'], label='djsc11')
-axs[0].plot(djsc22_H8['time'], djsc22_H8['x'], label='djsc22')
-axs[0].legend()
+tn = thrust.shape[0] * 0.05
+time = np.arange(0, tn, 0.05)
+axs[0].plot(time, thrust[:, 0])
+# axs[0].plot(hull_H8['time'], hull_H8['x'], label='with link')
 axs[0].set_title('Fx')
-# axs[1].plot(dj111_free['time'], dj111_free['y'], label='T=2')
-axs[1].plot(djsc11_H8['time'], djsc11_H8['y'], label='djsc11')
-axs[1].plot(djsc22_H8['time'], djsc22_H8['y'], label='djsc22')
-
-axs[1].legend()
+# axs[0].legend()
+axs[1].plot(time, thrust[:, 1])
+# axs[1].plot(hull_H8['time'], hull_H8['y'], label='with link')
 axs[1].set_title('Fy')
-# axs[2].plot(dj111_free['time'], dj111_free['z'], label='T=2')
-axs[2].plot(djsc11_H8['time'], djsc11_H8['z'], label='djsc11')
-axs[2].plot(djsc22_H8['time'], djsc22_H8['z'], label='djsc22')
-axs[2].legend()
-axs[2].set_title('Fz')
+# axs[1].legend()
+axs[2].plot(time, thrust[:, 2])
+# axs[2].plot(hull_H8['time'], hull_H8['Rz'], label='with link')
+axs[2].set_title('Fn')
+# axs[2].legend()
+# plt.legend()
 plt.tight_layout()
-plt.show()
+
 """plot displacement with and without link between spar and hull"""
 figone, axs = plt.subplots(3, 1)
 axs[0].plot(hull_nolink['time'], hull_nolink['x'], label='w.o.t link')
