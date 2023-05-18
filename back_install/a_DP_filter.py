@@ -86,7 +86,7 @@ class TimeStepEvent(agxSDK.StepEventListener):
              self.object.getLocalRotation().z()])
         if round(time % 20) == 0.:
             df = pd.DataFrame(self.data, columns=['time', 'x', 'y', 'z', 'Rx', 'Ry', 'Rz'])
-            df.to_csv('./results/{}_dp.csv'.format(self.file), index=False)
+            df.to_csv('./results/{}_dp_1000.csv'.format(self.file), index=False)
             print('save data at {}s.'.format(time))
 
 
@@ -113,7 +113,7 @@ class ForceListener(agxSDK.StepEventListener):
         self.data.append([time, self.force.x(), self.force.y(), self.force.z()])
         if round(time % 20) == 0.00:
             df = pd.DataFrame(self.data, columns=['time', 'x', 'y', 'z'])
-            df.to_csv('./results/{}_dp.csv'.format(self.file), index=False)
+            df.to_csv('./results/{}_dp_1000.csv'.format(self.file), index=False)
 
 
 import numpy as np
@@ -290,11 +290,11 @@ class TreDPController(agxSDK.StepEventListener):
         self.prev_Heading_err = 0
 
         # PID parameters
-        self.KpSway = 100
+        self.KpSway = 1000
         self.KiSway = 0
         self.KdSway = 0
 
-        self.KpSurge = 100
+        self.KpSurge = 1000
         self.KiSurge = 0
         self.KdSurge = 0
 
@@ -367,7 +367,7 @@ class TreDPController(agxSDK.StepEventListener):
             Heading_moment = PHeading + IHeading + DHeading
             thrust = [Surge_force, Sway_force, Heading_moment]
             from csv import writer
-            with open('DPthrust.txt', 'a') as f_object:
+            with open('DPthrust_1000.txt', 'a') as f_object:
                 writer_object = writer(f_object)
                 writer_object.writerow(thrust)
                 f_object.close()
